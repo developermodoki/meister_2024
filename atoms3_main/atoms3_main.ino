@@ -1,9 +1,11 @@
 #include <M5AtomS3.h>
-#include <ArduinoMqttClient.h>
-#include "ClosedCube_TCA9548A.h"
+
 #include <Wire.h>
-#include <WiFi.h>
+#include "ClosedCube_TCA9548A.h"
 #include "UNIT_SCALES.h"
+
+#include <ArduinoMqttClient.h>
+#include <WiFi.h>
 
 #define HUB_ADDR 0x70
 #define SSID "hidden"
@@ -20,8 +22,11 @@ UNIT_SCALES scales;
 WiFiClient wifiClient;
 MqttClient mqttClient(wifiClient);
 
+
 void setup() {
     AtomS3.begin(true);
+    AtomS3.dis.setBrightness(100);
+
     Serial.begin(9600);
     Wire.begin(2, 1); // Use Port Custom of M5AtomS3, so SDA is 2, SCL is 1.
     tca9548a.address(HUB_ADDR);
@@ -39,12 +44,15 @@ void setup() {
     //Wifi Configuration
     Serial.println("Starting Wi-Fi Connection...");
     WiFi.begin(SSID, WIFI_PASS);
-    if(WiFi.status() != WL_CONNECTED) delay(100);
+    delay(2000);
 
-    Serial.print("Wi-Fi successfully connected, Local IP Address is: ");
+    if(!WiFi.isConnected()) {
+      while(WiFi.begin(SSID, WIFI_PASS) != WL_CONNECTED) delay(2000);
+    }
+    Serial.print("Wi-Fi Connected. Local IP is: ");
     Serial.println(WiFi.localIP());
 
-    //MQTT Configuration
+    //MQTT Connection
     Serial.println("Starting MQTT Connection... (Publisher)");
     while(!mqttClient.connect(MQTT_BROKER, MQTT_PORT)) {
       delay(500);
@@ -52,34 +60,52 @@ void setup() {
     Serial.println("MQTT successfully connected.");
 }
 
+
 void loop() {
   // keep MQTT Connection alive
   mqttClient.poll();
+  AtomS3.update();
+  unsigned long currentTime = millis();
+  static unsigned long previousTime = 0;
+
   int32_t weight1 = 0;
   int32_t weight2 = 0;
 
+  //0kg Adjustment
+  static int32_t zeroTare1 = 0;
+  static int32_t zeroTare2 = 0;
+
+  if(AtomS3.BtnA.wasPressed()) {
+    AtomS3.dis.drawpix(0x00FF00);
+    tca9548a.selectChannel(1);
+    zeroTare1 = scales.getWeight();
+    tca9548a.selectChannel(2);
+    zeroTare2 = scales.getWeight();
+  }
+
   tca9548a.selectChannel(1);
-  Serial.println("Current Channel: 2");
-  weight1 = scales.getWeight();
-  Serial.print("gram1 : ");
-  Serial.println(weight1);
-
+  weight1 = scales.getWeight() - zeroTare1;
   tca9548a.selectChannel(2);
-  Serial.println("Current Channel: 3");
-  weight2 = scales.getWeight();
-  Serial.print("gram2 : ");
-  Serial.println(weight2);
+  weight2 = scales.getWeight() - zeroTare2;
 
 
-  Serial.println("Sending to MQTT...");
-  mqttClient.beginMessage(SCALES1_TOPIC_NAME);
-  mqttClient.print(weight1);
-  mqttClient.endMessage();
+  if(currentTime - previousTime >= 2000) {
+    previousTime = currentTime;
 
-  mqttClient.beginMessage(SCALES2_TOPIC_NAME);
-  mqttClient.print(weight2);
-  mqttClient.endMessage();
+    Serial.print("gram1 : ");
+    Serial.println(weight1);
+    Serial.print("gram2 : ");
+    Serial.println(weight2);
 
-  delay(2000);
+    //Send to Server
+    Serial.println("Sending to MQTT...");
+    mqttClient.beginMessage(SCALES1_TOPIC_NAME);
+    mqttClient.print(weight1);
+    mqttClient.endMessage();
+
+    mqttClient.beginMessage(SCALES2_TOPIC_NAME);
+    mqttClient.print(weight2);
+    mqttClient.endMessage();
+  }
 }
 
