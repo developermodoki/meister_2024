@@ -1,37 +1,36 @@
 #include <M5AtomS3.h>
 #include "ClosedCube_TCA9548A.h"
+#include <Wire.h>
 #include "UNIT_SCALES.h"
+
 #define HUB_ADDR 0x70
 
 ClosedCube::Wired::TCA9548A tca9548a;
+UNIT_SCALES scales;
 
 void setup() {
     AtomS3.begin(true);  // Init M5AtomS3Lite.
-    tca9548a.address(HUB_ADDR);
     Serial.begin(9600);
-    //AtomS3.dis.setBrightness(100);
-}
+    Wire.begin(2, 1);
+    tca9548a.address(HUB_ADDR);
 
-void loop() {
-    uint8_t returnCode = 0;
-    uint8_t address;
-
-    for(uint8_t channel = 0; channel < TCA9548A_MAX_CHANNELS; channel++) {
-      UNIT_SCALES scales;
-
-      Serial.println("Changing Channel...");
-      returnCode = tca9548a.selectChannel(channel);
-      if(returnCode == 0) {
-        Serial.println("Success");
-      }
-
-      while (!scales.begin(&Wire, 21, 22, DEVICE_DEFAULT_ADDR)) {
+    for(uint8_t ch = 1; ch < 3; ch++) {
+      tca9548a.selectChannel(ch);
+      while (!scales.begin(&Wire, 2, 1, DEVICE_DEFAULT_ADDR)) {
         Serial.println("scales connect error");
         delay(1000);
       }
-
-      Serial.print("OK : ");
-      Serial.println(scales.getWeight());
-      delay(1000);
     }
+}
+
+void loop() {
+
+  for(uint8_t ch = 1; ch < 3; ch++) {
+    tca9548a.selectChannel(ch);
+    Serial.print("Current Channel: ");
+    Serial.println(ch);
+    Serial.print("gram : ");
+    Serial.println(scales.getWeight());
+    delay(500);
+  }
 }
