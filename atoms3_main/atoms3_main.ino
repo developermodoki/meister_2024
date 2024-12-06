@@ -17,11 +17,12 @@
 #define SCALES1_TOPIC_NAME "hidden"
 #define SCALES2_TOPIC_NAME "hidden"
 
+
+
 ClosedCube::Wired::TCA9548A tca9548a;
 UNIT_SCALES scales;
 WiFiClient wifiClient;
 MqttClient mqttClient(wifiClient);
-
 
 void setup() {
     AtomS3.begin(true);
@@ -40,7 +41,7 @@ void setup() {
       }
     }
     Serial.println("All MiniScales are successfully initialized");
-
+    
     //Wifi Configuration
     Serial.println("Starting Wi-Fi Connection...");
     WiFi.begin(SSID, WIFI_PASS);

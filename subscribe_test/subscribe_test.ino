@@ -32,12 +32,15 @@ void setup() {
   while(!mqttClient.connect(MQTT_BROKER, MQTT_PORT)) {
     delay(5000);
   }
+  mqttClient.onMessage();
   Serial.println("MQTT successfully connected.");
 
 
   //Subscribing Topics
   mqttClient.subscribe(SCALES1_TOPIC_NAME);
   mqttClient.subscribe(SCALES2_TOPIC_NAME);
+
+
 
 }
 
