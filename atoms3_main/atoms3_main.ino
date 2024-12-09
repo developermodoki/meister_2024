@@ -24,6 +24,14 @@ void setup() {
     Wire.begin(2, 1); // Use Port Custom of M5AtomS3, so SDA is 2, SCL is 1.
     tca9548a.address(HUB_ADDR);
 
+    tca9548a.selectChannel(3);
+    display.init();
+    display.setRotation(1);
+    canvas.setColorDepth(1);
+    canvas.setTextWrap(false);
+    canvas.setTextSize(1.5);
+    canvas.createSprite(display.width(), display.height());
+
     // use Channel 2 and 3 in Pa.HUB2
     for(uint8_t ch = 1; ch < 3; ch++) {
       tca9548a.selectChannel(ch);
@@ -34,6 +42,7 @@ void setup() {
     }
     Serial.println("All MiniScales are successfully initialized");
     
+    /*
     //Wifi Configuration
     Serial.println("Starting Wi-Fi Connection...");
     WiFi.begin(SSID, WIFI_PASS);
@@ -44,6 +53,7 @@ void setup() {
     }
     Serial.print("Wi-Fi Connected. Local IP is: ");
     Serial.println(WiFi.localIP());
+    */
 }
 
 
@@ -73,6 +83,14 @@ void loop() {
   tca9548a.selectChannel(2);
   weight2 = scales.getWeight() - zeroTare2;
 
+  tca9548a.selectChannel(3);
+  canvas.pushSprite(0, 0);
+  canvas.setCursor(0, 0);
+  
+  canvas.println("Measuring..");
+  //canvas.setCursor(1, 0);
+  canvas.printf("Cup1: .. g");
+  canvas.println("Cup2: ... g");
 
   if(currentTime - previousTime >= 2000) {
     previousTime = currentTime;

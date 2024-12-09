@@ -17,10 +17,9 @@ void setup() {
   tca9548a.selectChannel(3);
   display.init();
   display.setRotation(1);
-  canvas.setColorDepth(1); // mono color
-  //canvas.setFont(&fonts::lgfxJapanMinchoP_32);
+  canvas.setColorDepth(1);
   canvas.setTextWrap(false);
-  canvas.setTextSize(2);
+  canvas.setTextSize(1.5);
   canvas.createSprite(display.width(), display.height());
 
 }
@@ -30,5 +29,9 @@ void loop() {
   tca9548a.selectChannel(3);
   canvas.pushSprite(0, 0);
   canvas.setCursor(0, 0);
-  canvas.print("y = sin(x)");
+  
+  canvas.println("Measuring..");
+  //canvas.setCursor(1, 0);
+  canvas.println("Cup1: .. g");
+  canvas.println("Cup2: ... g");
 }
