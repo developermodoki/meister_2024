@@ -4,8 +4,9 @@
 #include "ClosedCube_TCA9548A.h"
 #include "UNIT_SCALES.h"
 
-#include <ArduinoMqttClient.h>
 #include <WiFi.h>
+#include <M5UnitOLED.h>
+
 
 #define HUB_ADDR 0x70
 #define SSID "hidden"
@@ -15,6 +16,8 @@ ClosedCube::Wired::TCA9548A tca9548a;
 UNIT_SCALES scales;
 WiFiClient wifiClient;
 
+M5UnitOLED display(2, 1, 400000);
+M5Canvas canvas(&display);
 
 void setup() {
     AtomS3.begin(true);
@@ -42,7 +45,7 @@ void setup() {
     }
     Serial.println("All MiniScales are successfully initialized");
     
-    /*
+    
     //Wifi Configuration
     Serial.println("Starting Wi-Fi Connection...");
     WiFi.begin(SSID, WIFI_PASS);
@@ -53,15 +56,17 @@ void setup() {
     }
     Serial.print("Wi-Fi Connected. Local IP is: ");
     Serial.println(WiFi.localIP());
-    */
 }
 
 
 void loop() {
 
   AtomS3.update();
+
   unsigned long currentTime = millis();
+  unsigned long currentTime2 = millis();
   static unsigned long previousTime = 0;
+  static unsigned long previousTime2 = 0;
 
   int32_t weight1 = 0;
   int32_t weight2 = 0;
@@ -86,11 +91,16 @@ void loop() {
   tca9548a.selectChannel(3);
   canvas.pushSprite(0, 0);
   canvas.setCursor(0, 0);
-  
-  canvas.println("Measuring..");
-  //canvas.setCursor(1, 0);
-  canvas.printf("Cup1: .. g");
-  canvas.println("Cup2: ... g");
+
+
+  if(currentTime2 - previousTime2 >= 100) {
+    previousTime2 = currentTime2;
+
+    canvas.clear();
+    canvas.println("Measuring..");
+    canvas.printf("Cup1: %dg\n", weight1);
+    canvas.printf("Cup2: %dg\n", weight2);
+  }
 
   if(currentTime - previousTime >= 2000) {
     previousTime = currentTime;
