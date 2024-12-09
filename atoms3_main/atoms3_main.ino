@@ -11,18 +11,10 @@
 #define SSID "hidden"
 #define WIFI_PASS "hidden"
 
-#define MQTT_BROKER "test.mosquitto.org"
-#define MQTT_PORT 1883
-// Configuration of MQTT Topic Names
-#define SCALES1_TOPIC_NAME "hidden"
-#define SCALES2_TOPIC_NAME "hidden"
-
-
-
 ClosedCube::Wired::TCA9548A tca9548a;
 UNIT_SCALES scales;
 WiFiClient wifiClient;
-MqttClient mqttClient(wifiClient);
+
 
 void setup() {
     AtomS3.begin(true);
@@ -52,19 +44,11 @@ void setup() {
     }
     Serial.print("Wi-Fi Connected. Local IP is: ");
     Serial.println(WiFi.localIP());
-
-    //MQTT Connection
-    Serial.println("Starting MQTT Connection... (Publisher)");
-    while(!mqttClient.connect(MQTT_BROKER, MQTT_PORT)) {
-      delay(500);
-    }
-    Serial.println("MQTT successfully connected.");
 }
 
 
 void loop() {
-  // keep MQTT Connection alive
-  mqttClient.poll();
+
   AtomS3.update();
   unsigned long currentTime = millis();
   static unsigned long previousTime = 0;
@@ -97,16 +81,6 @@ void loop() {
     Serial.println(weight1);
     Serial.print("gram2 : ");
     Serial.println(weight2);
-
-    //Send to Server
-    Serial.println("Sending to MQTT...");
-    mqttClient.beginMessage(SCALES1_TOPIC_NAME);
-    mqttClient.print(weight1);
-    mqttClient.endMessage();
-
-    mqttClient.beginMessage(SCALES2_TOPIC_NAME);
-    mqttClient.print(weight2);
-    mqttClient.endMessage();
   }
 }
 
