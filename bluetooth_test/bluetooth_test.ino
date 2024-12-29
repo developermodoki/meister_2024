@@ -6,7 +6,6 @@
 #include <BLEServer.h>
 #include <BLE2902.h>
 
-
 #define BT_SV_NAME "m5-test"
 #define SERVICE_UUID        "e83823df-3f53-40cb-89f1-586c248ed29d"
 #define CHARACTERISTIC_UUID "30448c28-af54-4ed2-ac79-f9378e91a1ad"
@@ -91,4 +90,3 @@ void loop() {
     delay(1000); 
   }
 }
-
