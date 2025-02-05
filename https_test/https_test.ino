@@ -21,7 +21,7 @@ void setup() {
     Serial.print("Wi-Fi Connected. Local IP is: ");
     Serial.println(WiFi.localIP());
 }
-
+//curl https://httpbin.org/ip
 
 void loop() {
 

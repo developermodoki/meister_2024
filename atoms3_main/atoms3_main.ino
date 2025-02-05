@@ -17,8 +17,8 @@
 #define CHARACTERISTIC_UUID "30448c28-af54-4ed2-ac79-f9378e91a1ad"
 
 #define HUB_ADDR 0x70
-#define SSID "hidden"
-#define WIFI_PASS "hidden"
+#define SSID "KOKI08-DYNABOOK 1420"
+#define WIFI_PASS "653R0o0<"
 
 BLEServer *pServer = nullptr;
 BLECharacteristic *pCharacteristic = nullptr;
@@ -104,32 +104,32 @@ void setup() {
 
     BLEDevice::init(BT_SV_NAME);
 
-  pServer = BLEDevice::createServer();
+    pServer = BLEDevice::createServer();
 
-  pServer->setCallbacks(new MyServerCallbacks());
-  BLEService *pService = pServer->createService(SERVICE_UUID);
+    pServer->setCallbacks(new MyServerCallbacks()); 
+    BLEService *pService = pServer->createService(SERVICE_UUID);
 
-  pCharacteristic = pService->createCharacteristic(
-    CHARACTERISTIC_UUID,
-    BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY | BLECharacteristic::PROPERTY_INDICATE
-  );
-  pCharacteristic->setCallbacks(new MyReceiveCallbacks());
+    pCharacteristic = pService->createCharacteristic(
+      CHARACTERISTIC_UUID,
+      BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY | BLECharacteristic::PROPERTY_INDICATE
+    );
+    pCharacteristic->setCallbacks(new MyReceiveCallbacks());
 
-  // https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.descriptor.gatt.client_characteristic_configuration.xml
-  pCharacteristic->addDescriptor(new BLE2902());
+    // https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.descriptor.gatt.client_characteristic_configuration.xml
+    pCharacteristic->addDescriptor(new BLE2902());
 
-  pService->start();
+    pService->start();
 
-  // Start advertising
-  BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
-  pAdvertising->addServiceUUID(SERVICE_UUID);
-  pAdvertising->setScanResponse(true);
-  pAdvertising->setMinPreferred(0x0);
-  pAdvertising->setMinPreferred(0x06); 
-  pAdvertising->setMinPreferred(0x12);
+    // Start advertising
+    BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
+    pAdvertising->addServiceUUID(SERVICE_UUID);
+    pAdvertising->setScanResponse(true);
+    pAdvertising->setMinPreferred(0x0);
+    pAdvertising->setMinPreferred(0x06); 
+    pAdvertising->setMinPreferred(0x12);
 
-  BLEDevice::startAdvertising();
-  Serial.println("Bluetooth Slave Started");
+    BLEDevice::startAdvertising();
+    Serial.println("Bluetooth Slave Started");
 }
 
 
@@ -188,7 +188,6 @@ void loop() {
   }
 
   if (Connected) {
-
     if(currentTime3 - previousTime3 >= 1000){
       previousTime3 = currentTime3;
       pCharacteristic->setValue("Hello World!");
