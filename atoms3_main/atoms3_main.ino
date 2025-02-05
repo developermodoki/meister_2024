@@ -7,14 +7,59 @@
 #include <WiFi.h>
 #include <M5UnitOLED.h>
 
+#include <BLEDevice.h>
+#include <BLEUtils.h>
+#include <BLEServer.h>
+#include <BLE2902.h>
+
+#define BT_SV_NAME "m5-test"
+#define SERVICE_UUID        "e83823df-3f53-40cb-89f1-586c248ed29d"
+#define CHARACTERISTIC_UUID "30448c28-af54-4ed2-ac79-f9378e91a1ad"
 
 #define HUB_ADDR 0x70
 #define SSID "hidden"
 #define WIFI_PASS "hidden"
 
+BLEServer *pServer = nullptr;
+BLECharacteristic *pCharacteristic = nullptr;
+bool Connected = false;
+
 ClosedCube::Wired::TCA9548A tca9548a;
 UNIT_SCALES scales;
 WiFiClient wifiClient;
+
+class MyServerCallbacks : public BLEServerCallbacks {
+  void onConnect(BLEServer *pServer) {
+    BLEDevice::startAdvertising();
+    Connected = true;
+    Serial.println("Connected");
+  };
+
+  void onDisconnect(BLEServer *pServer) {
+    delay(500);         
+    BLEDevice::startAdvertising();
+    Connected = false;
+    Serial.println("Disconnected");
+  }
+};
+
+
+class MyReceiveCallbacks : public BLECharacteristicCallbacks {
+  void onWrite(BLECharacteristic *pCharacteristic) {
+    std::string value = pCharacteristic->getValue();
+
+    if (value.length() > 0) {
+      Serial.println("*********");
+      Serial.print("New value: ");
+      for (int i = 0; i < value.length(); i++) {
+        Serial.print(value[i]);
+      }
+
+      Serial.println();
+      Serial.println("*********");
+    }
+  }
+};
 
 M5UnitOLED display(2, 1, 400000);
 M5Canvas canvas(&display);
@@ -56,6 +101,35 @@ void setup() {
     }
     Serial.print("Wi-Fi Connected. Local IP is: ");
     Serial.println(WiFi.localIP());
+
+    BLEDevice::init(BT_SV_NAME);
+
+  pServer = BLEDevice::createServer();
+
+  pServer->setCallbacks(new MyServerCallbacks());
+  BLEService *pService = pServer->createService(SERVICE_UUID);
+
+  pCharacteristic = pService->createCharacteristic(
+    CHARACTERISTIC_UUID,
+    BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY | BLECharacteristic::PROPERTY_INDICATE
+  );
+  pCharacteristic->setCallbacks(new MyReceiveCallbacks());
+
+  // https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.descriptor.gatt.client_characteristic_configuration.xml
+  pCharacteristic->addDescriptor(new BLE2902());
+
+  pService->start();
+
+  // Start advertising
+  BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
+  pAdvertising->addServiceUUID(SERVICE_UUID);
+  pAdvertising->setScanResponse(true);
+  pAdvertising->setMinPreferred(0x0);
+  pAdvertising->setMinPreferred(0x06); 
+  pAdvertising->setMinPreferred(0x12);
+
+  BLEDevice::startAdvertising();
+  Serial.println("Bluetooth Slave Started");
 }
 
 
@@ -65,8 +139,10 @@ void loop() {
 
   unsigned long currentTime = millis();
   unsigned long currentTime2 = millis();
+  unsigned long currentTime3 = millis();
   static unsigned long previousTime = 0;
   static unsigned long previousTime2 = 0;
+  static unsigned long previousTime3 = 0;
 
   int32_t weight1 = 0;
   int32_t weight2 = 0;
@@ -109,6 +185,16 @@ void loop() {
     Serial.println(weight1);
     Serial.print("gram2 : ");
     Serial.println(weight2);
+  }
+
+  if (Connected) {
+
+    if(currentTime3 - previousTime3 >= 1000){
+      previousTime3 = currentTime3;
+      pCharacteristic->setValue("Hello World!");
+      pCharacteristic->notify();
+    }
+
   }
 }
 
