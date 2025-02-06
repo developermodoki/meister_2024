@@ -1,4 +1,5 @@
 #include <M5AtomS3.h>
+#include <string.h>
 
 #include <Wire.h>
 #include "ClosedCube_TCA9548A.h"
@@ -12,13 +13,22 @@
 #include <BLEServer.h>
 #include <BLE2902.h>
 
+#include <EEPROM.h>
+#include <ArduinoJson.h>
+// Let each of addresses "0x00" "0x01" "0x02", "0x03", "0x04" be Wifi SSID, Wifi Pass, LINEBot ID, LINEBot Token, User ID. 
+
 #define BT_SV_NAME "m5-test"
 #define SERVICE_UUID        "e83823df-3f53-40cb-89f1-586c248ed29d"
 #define CHARACTERISTIC_UUID "30448c28-af54-4ed2-ac79-f9378e91a1ad"
 
 #define HUB_ADDR 0x70
-#define SSID "KOKI08-DYNABOOK 1420"
-#define WIFI_PASS "653R0o0<"
+//#define SSID "KOKI08-DYNABOOK 1420"
+//#define WIFI_PASS "653R0o0<"
+String SSID;
+String WIFI_PASS;
+String BOT_ID;
+String BOT_TOKEN;
+String USER_ID;
 
 BLEServer *pServer = nullptr;
 BLECharacteristic *pCharacteristic = nullptr;
@@ -48,6 +58,9 @@ class MyReceiveCallbacks : public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic *pCharacteristic) {
     std::string value = pCharacteristic->getValue();
 
+    EEPROM.put(0x00, value);
+    EEPROM.commit();
+
     if (value.length() > 0) {
       Serial.println("*********");
       Serial.print("New value: ");
@@ -58,6 +71,7 @@ class MyReceiveCallbacks : public BLECharacteristicCallbacks {
       Serial.println();
       Serial.println("*********");
     }
+
   }
 };
 
@@ -79,6 +93,25 @@ void setup() {
     canvas.setTextWrap(false);
     canvas.setTextSize(1.5);
     canvas.createSprite(display.width(), display.height());
+    //EEPROM.begin(512);
+
+    std::string JsonData;
+    EEPROM.get(0x00, JsonData);
+    JsonDocument data;
+    DeserializationError err = deserializeJson(data, JsonData);
+
+    if (err) {
+      Serial.print(F("JSON parsing failed: "));
+      Serial.println(err.f_str());
+      //return;
+    }
+    else {
+      SSID = data["ssid"].as<String>();
+      WIFI_PASS = data["password"].as<String>();
+      BOT_ID = data["botId"].as<String>();
+      BOT_TOKEN = data["token"].as<String>();
+      USER_ID = data["userId"].as<String>();
+    }
 
     // use Channel 2 and 3 in Pa.HUB2
     for(uint8_t ch = 1; ch < 3; ch++) {
@@ -92,15 +125,29 @@ void setup() {
     
     
     //Wifi Configuration
+    bool WIFI_flag = 0;
     Serial.println("Starting Wi-Fi Connection...");
+    Serial.println(WIFI_PASS);
+    Serial.println(SSID);
     WiFi.begin(SSID, WIFI_PASS);
     delay(2000);
 
     if(!WiFi.isConnected()) {
-      while(WiFi.begin(SSID, WIFI_PASS) != WL_CONNECTED) delay(2000);
+      int i = 0;
+      while(WiFi.begin(SSID, WIFI_PASS) != WL_CONNECTED) {
+        delay(2000);
+        i++;
+        if(i <= 3) break;
+      };
     }
-    Serial.print("Wi-Fi Connected. Local IP is: ");
-    Serial.println(WiFi.localIP());
+    if(WiFi.isConnected()) WIFI_flag = 1;
+    if (WIFI_flag) {
+      Serial.print("Wi-Fi Connected. Local IP is: ");
+      Serial.println(WiFi.localIP());
+    }
+    else {
+      Serial.println("Wifi Connection failed.");
+    }
 
     BLEDevice::init(BT_SV_NAME);
 
