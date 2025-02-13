@@ -57,8 +57,20 @@ class MyServerCallbacks : public BLEServerCallbacks {
 class MyReceiveCallbacks : public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic *pCharacteristic) {
     std::string value = pCharacteristic->getValue();
+    JsonDocument recv;
+    DeserializationError err = deserializeJson(recv, value.c_str());
 
-    EEPROM.put(0x00, value);
+    if (err) {
+      Serial.print(F("JSON parsing failed: "));
+      Serial.println(err.f_str());
+    }
+    else {
+      SSID = data["ssid"].as<String>();
+      WIFI_PASS = data["password"].as<String>();
+    }
+
+
+    EEPROM.writeString(0x00, value.c_str());
     EEPROM.commit();
 
     if (value.length() > 0) {
@@ -70,6 +82,30 @@ class MyReceiveCallbacks : public BLECharacteristicCallbacks {
 
       Serial.println();
       Serial.println("*********");
+    }
+
+    bool WIFI_flag = 0;
+    Serial.println("Starting Wi-Fi Reconnection...");
+    Serial.println(WIFI_PASS);
+    Serial.println(SSID);
+    WiFi.begin(SSID, WIFI_PASS);
+    delay(2000);
+
+    if(!WiFi.isConnected()) {
+      int i = 0;
+      while(WiFi.begin(SSID, WIFI_PASS) != WL_CONNECTED) {
+        delay(2000);
+        i++;
+        if(i <= 3) break;
+      };
+    }
+    if(WiFi.isConnected()) WIFI_flag = 1;
+    if (WIFI_flag) {
+      Serial.print("Wi-Fi Connected. Local IP is: ");
+      Serial.println(WiFi.localIP());
+    }
+    else {
+      Serial.println("Wifi Connection failed.");
     }
 
   }
@@ -93,10 +129,10 @@ void setup() {
     canvas.setTextWrap(false);
     canvas.setTextSize(1.5);
     canvas.createSprite(display.width(), display.height());
-    //EEPROM.begin(512);
+    EEPROM.begin(100);
 
-    std::string JsonData;
-    EEPROM.get(0x00, JsonData);
+    std::string JsonData = EEPROM.readString(0x00).c_str();
+    //EEPROM.get(0x00, JsonData);
     JsonDocument data;
     DeserializationError err = deserializeJson(data, JsonData);
 
