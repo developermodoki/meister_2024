@@ -15,6 +15,9 @@
 
 #include <EEPROM.h>
 #include <ArduinoJson.h>
+
+#include "https.cpp"
+
 // Let each of addresses "0x00" "0x01" "0x02", "0x03", "0x04" be Wifi SSID, Wifi Pass, LINEBot ID, LINEBot Token, User ID. 
 
 #define BT_SV_NAME "m5-test"
@@ -36,8 +39,9 @@ bool Connected = false;
 
 ClosedCube::Wired::TCA9548A tca9548a;
 UNIT_SCALES scales;
-WiFiClient wifiClient;
 
+
+//BLE Settings
 class MyServerCallbacks : public BLEServerCallbacks {
   void onConnect(BLEServer *pServer) {
     BLEDevice::startAdvertising();
@@ -52,7 +56,6 @@ class MyServerCallbacks : public BLEServerCallbacks {
     Serial.println("Disconnected");
   }
 };
-
 
 class MyReceiveCallbacks : public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic *pCharacteristic) {
@@ -132,14 +135,12 @@ void setup() {
     EEPROM.begin(100);
 
     std::string JsonData = EEPROM.readString(0x00).c_str();
-    //EEPROM.get(0x00, JsonData);
     JsonDocument data;
     DeserializationError err = deserializeJson(data, JsonData);
 
     if (err) {
       Serial.print(F("JSON parsing failed: "));
       Serial.println(err.f_str());
-      //return;
     }
     else {
       SSID = data["ssid"].as<String>();
@@ -268,6 +269,8 @@ void loop() {
     Serial.println(weight1);
     Serial.print("gram2 : ");
     Serial.println(weight2);
+
+    post(BOT_ID, BOT_TOKEN, USER_ID, weight1, weight2);
   }
 
   if (Connected) {
