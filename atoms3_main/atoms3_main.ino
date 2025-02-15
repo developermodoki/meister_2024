@@ -16,7 +16,6 @@
 #include <EEPROM.h>
 #include <ArduinoJson.h>
 
-#include "https.cpp"
 
 // Let each of addresses "0x00" "0x01" "0x02", "0x03", "0x04" be Wifi SSID, Wifi Pass, LINEBot ID, LINEBot Token, User ID. 
 
@@ -68,8 +67,8 @@ class MyReceiveCallbacks : public BLECharacteristicCallbacks {
       Serial.println(err.f_str());
     }
     else {
-      SSID = data["ssid"].as<String>();
-      WIFI_PASS = data["password"].as<String>();
+      SSID = recv["ssid"].as<String>();
+      WIFI_PASS = recv["password"].as<String>();
     }
 
 
@@ -273,6 +272,7 @@ void loop() {
     post(BOT_ID, BOT_TOKEN, USER_ID, weight1, weight2);
   }
 
+  /*
   if (Connected) {
     if(currentTime3 - previousTime3 >= 1000){
       previousTime3 = currentTime3;
@@ -281,5 +281,5 @@ void loop() {
     }
 
   }
+  */
 }
-

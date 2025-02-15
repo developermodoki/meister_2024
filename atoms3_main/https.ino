@@ -28,7 +28,7 @@ const char* root_ca = \
 "-----END CERTIFICATE-----\n";
 
 
-void post(String botId, String token String userId, int gram1, int gram2) {
+void post(String botId, String token, String userId, int gram1, int gram2) {
   WiFiClientSecure *client = new WiFiClientSecure;
   String json = \
   "{\n" \
@@ -57,10 +57,10 @@ void post(String botId, String token String userId, int gram1, int gram2) {
         https.addHeader("Content-Type", "application/json");
         https.addHeader("Authorization", ("Bearer " + token));
 
-        int httpCode = https.POST();
+        int httpCode = https.POST(json);
   
         if (httpCode > 0) {
-          Serial.printf("[HTTPS] GET... code: %d\n", httpCode);
+          Serial.printf("[HTTPS] POST... code: %d\n", httpCode);
   
             if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
             String payload = https.getString();
