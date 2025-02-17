@@ -26,10 +26,10 @@
 #define HUB_ADDR 0x70
 //#define SSID "KOKI08-DYNABOOK 1420"
 //#define WIFI_PASS "653R0o0<"
+//↑ dummy ssid&pass
 String SSID;
 String WIFI_PASS;
-String BOT_ID;
-String BOT_TOKEN;
+String SECRET;
 String USER_ID;
 
 BLEServer *pServer = nullptr;
@@ -40,7 +40,7 @@ ClosedCube::Wired::TCA9548A tca9548a;
 UNIT_SCALES scales;
 
 
-//BLE Settings
+/* BEGIN BLE SETTINGS */
 class MyServerCallbacks : public BLEServerCallbacks {
   void onConnect(BLEServer *pServer) {
     BLEDevice::startAdvertising();
@@ -59,59 +59,65 @@ class MyServerCallbacks : public BLEServerCallbacks {
 class MyReceiveCallbacks : public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic *pCharacteristic) {
     std::string value = pCharacteristic->getValue();
-    JsonDocument recv;
-    DeserializationError err = deserializeJson(recv, value.c_str());
-
-    if (err) {
-      Serial.print(F("JSON parsing failed: "));
-      Serial.println(err.f_str());
-    }
-    else {
-      SSID = recv["ssid"].as<String>();
-      WIFI_PASS = recv["password"].as<String>();
-    }
-
-
-    EEPROM.writeString(0x00, value.c_str());
-    EEPROM.commit();
 
     if (value.length() > 0) {
       Serial.println("*********");
-      Serial.print("New value: ");
-      for (int i = 0; i < value.length(); i++) {
-        Serial.print(value[i]);
-      }
-
+      Serial.print("BLE Write Received: ");
+      Serial.println(value.c_str());
       Serial.println();
       Serial.println("*********");
     }
 
-    bool WIFI_flag = 0;
-    Serial.println("Starting Wi-Fi Reconnection...");
-    Serial.println(WIFI_PASS);
-    Serial.println(SSID);
-    WiFi.begin(SSID, WIFI_PASS);
-    delay(2000);
+    // if BLE Signal is 0 then;
+    if(value[0] == '0') {
+      
+      value.erase(0,1);
+      JsonDocument recv;
+      DeserializationError err = deserializeJson(recv, value.c_str());
 
-    if(!WiFi.isConnected()) {
-      int i = 0;
-      while(WiFi.begin(SSID, WIFI_PASS) != WL_CONNECTED) {
-        delay(2000);
-        i++;
-        if(i <= 3) break;
-      };
+      if (err) {
+        Serial.print(F("JSON parsing failed: "));
+        Serial.println(err.f_str());
+      }
+      else {
+        SSID = recv["ssid"].as<String>();
+        WIFI_PASS = recv["password"].as<String>();
+      }
+
+      //Saving JSON Data
+      EEPROM.writeString(0x00, value.c_str());
+      EEPROM.commit();
+
+      //WiFi Reconnection
+      bool WIFI_flag = 0;
+      Serial.println("Starting Wi-Fi Reconnection...");
+      WiFi.begin(SSID, WIFI_PASS);
+      delay(2000);
+
+      if(!WiFi.isConnected()) {
+        int i = 0;
+        while(WiFi.begin(SSID, WIFI_PASS) != WL_CONNECTED) {
+          delay(2000);
+          i++;
+          if(i <= 3) break;
+        };
+      }
+      if(WiFi.isConnected()) WIFI_flag = 1;
+      if (WIFI_flag) {
+        Serial.print("Wi-Fi Connected. Local IP is: ");
+        Serial.println(WiFi.localIP());
+      }
+      else {
+        Serial.println("Wifi Connection failed.");
+      }
     }
-    if(WiFi.isConnected()) WIFI_flag = 1;
-    if (WIFI_flag) {
-      Serial.print("Wi-Fi Connected. Local IP is: ");
-      Serial.println(WiFi.localIP());
-    }
+    // if BLE Signal is 1 then;
     else {
-      Serial.println("Wifi Connection failed.");
-    }
 
+    }
   }
 };
+/* END BLE SETTINGS */
 
 M5UnitOLED display(2, 1, 400000);
 M5Canvas canvas(&display);
@@ -131,7 +137,7 @@ void setup() {
     canvas.setTextWrap(false);
     canvas.setTextSize(1.5);
     canvas.createSprite(display.width(), display.height());
-    EEPROM.begin(100);
+    EEPROM.begin(300);
 
     std::string JsonData = EEPROM.readString(0x00).c_str();
     JsonDocument data;
@@ -144,9 +150,8 @@ void setup() {
     else {
       SSID = data["ssid"].as<String>();
       WIFI_PASS = data["password"].as<String>();
-      BOT_ID = data["botId"].as<String>();
-      BOT_TOKEN = data["token"].as<String>();
       USER_ID = data["userId"].as<String>();
+      SECRET = data["secret"].as<String>();
     }
 
     // use Channel 2 and 3 in Pa.HUB2
@@ -160,11 +165,9 @@ void setup() {
     Serial.println("All MiniScales are successfully initialized");
     
     
-    //Wifi Configuration
+    //Wifi Connection
     bool WIFI_flag = 0;
     Serial.println("Starting Wi-Fi Connection...");
-    Serial.println(WIFI_PASS);
-    Serial.println(SSID);
     WiFi.begin(SSID, WIFI_PASS);
     delay(2000);
 
@@ -269,7 +272,7 @@ void loop() {
     Serial.print("gram2 : ");
     Serial.println(weight2);
 
-    post(BOT_ID, BOT_TOKEN, USER_ID, weight1, weight2);
+    post(SECRET, USER_ID, weight1, weight2);
   }
 
   /*

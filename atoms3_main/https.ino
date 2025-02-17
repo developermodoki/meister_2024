@@ -2,6 +2,7 @@
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 
+#define LINE_URL "https://api.line.me/v2/bot/message/reply"
 
 //GlobalSign Certificate
 const char* root_ca = \
@@ -28,11 +29,11 @@ const char* root_ca = \
 "-----END CERTIFICATE-----\n";
 
 
-void post(String botId, String token, String userId, int gram1, int gram2) {
+void post(String secret, String userId, int gram1, int gram2) {
   WiFiClientSecure *client = new WiFiClientSecure;
   String json = \
   "{\n" \
-  "  \"replyToken\":\"" + botId +  "\"\n," \
+  "  \"to\":\"" + userId +  "\"\n," \
   " \"messages\":[ \n" \
   "      {" \
   "          \"type\":\"計量カップ1の質量\", \n" \
@@ -52,10 +53,10 @@ void post(String botId, String token, String userId, int gram1, int gram2) {
       HTTPClient https;
   
       Serial.println("Starting HTTPS Connection...");
-      if (https.begin(*client, "")) {
+      if (https.begin(*client, LINE_URL)) {
         Serial.print("[HTTPS] POST...\n");
         https.addHeader("Content-Type", "application/json");
-        https.addHeader("Authorization", ("Bearer " + token));
+        https.addHeader("Authorization", ("Bearer " + secret));
 
         int httpCode = https.POST(json);
   
@@ -67,7 +68,7 @@ void post(String botId, String token, String userId, int gram1, int gram2) {
             Serial.println(payload);
           }
         } else {
-          Serial.printf("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
+          Serial.printf("[HTTPS] POST... failed, error: %s\n", https.errorToString(httpCode).c_str());
         }
   
         https.end();
