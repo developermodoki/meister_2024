@@ -46,7 +46,6 @@ void post(String secret, String userId, int gram1, int gram2) {
   "  ]\n" \
   "}\n";
 
-  Serial.println(json);
   if(client) {
     client -> setCACert(root_ca);
 
@@ -64,7 +63,7 @@ void post(String secret, String userId, int gram1, int gram2) {
         if (httpCode > 0) {
           Serial.printf("[HTTPS] POST... code: %d\n", httpCode);
   
-            if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
+          if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
             String payload = https.getString();
             Serial.println(payload);
           }
@@ -81,6 +80,6 @@ void post(String secret, String userId, int gram1, int gram2) {
     delete client;
   }
   else {
-    Serial.println("Cannot Create https client");
+    Serial.println("Cannot create https client");
   }
 }

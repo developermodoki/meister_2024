@@ -17,8 +17,6 @@
 #include <ArduinoJson.h>
 
 
-// Let each of addresses "0x00" "0x01" "0x02", "0x03", "0x04" be Wifi SSID, Wifi Pass, LINEBot ID, LINEBot Token, User ID. 
-
 #define BT_SV_NAME "m5-test"
 #define SERVICE_UUID        "e83823df-3f53-40cb-89f1-586c248ed29d"
 #define CHARACTERISTIC_UUID "30448c28-af54-4ed2-ac79-f9378e91a1ad"
