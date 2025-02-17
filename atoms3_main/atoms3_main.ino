@@ -264,7 +264,7 @@ void loop() {
     canvas.printf("Cup2: %dg\n", weight2);
   }
 
-  if(currentTime - previousTime >= 2000) {
+  if(currentTime - previousTime >= 500000) {
     previousTime = currentTime;
 
     Serial.print("gram1 : ");

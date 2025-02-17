@@ -2,7 +2,7 @@
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 
-#define LINE_URL "https://api.line.me/v2/bot/message/reply"
+#define LINE_URL "https://api.line.me/v2/bot/message/push"
 
 //GlobalSign Certificate
 const char* root_ca = \
@@ -33,19 +33,20 @@ void post(String secret, String userId, int gram1, int gram2) {
   WiFiClientSecure *client = new WiFiClientSecure;
   String json = \
   "{\n" \
-  "  \"to\":\"" + userId +  "\"\n," \
-  " \"messages\":[ \n" \
+  "  \"to\":\"" + userId +  "\",\n" \
+  "  \"messages\":[ \n" \
   "      {" \
-  "          \"type\":\"計量カップ1の質量\", \n" \
-  "          \"text\":\"" + String(gram1) + "\"\n" \
+  "          \"type\":\"text\", \n" \
+  "          \"text\":\"カップ1の質量: " + String(gram1) + "g\"\n" \
   "      },\n" \
   "      {\n" \
-  "          \"type\":\"計量カップ2の質量\",\n" \
-  "          \"text\":\"" + String(gram2) + "\" \n" \
+  "          \"type\":\"text\",\n" \
+  "          \"text\":\"カップ2の質量: " + String(gram2) + "g\" \n" \
   "      }\n" \
   "  ]\n" \
   "}\n";
 
+  Serial.println(json);
   if(client) {
     client -> setCACert(root_ca);
 
