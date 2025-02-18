@@ -6,6 +6,7 @@
 #include "UNIT_SCALES.h"
 
 #include <WiFi.h>
+#include <time.h>
 #include <M5UnitOLED.h>
 
 #include <BLEDevice.h>
@@ -21,6 +22,10 @@
 #define SERVICE_UUID        "e83823df-3f53-40cb-89f1-586c248ed29d"
 #define CHARACTERISTIC_UUID "30448c28-af54-4ed2-ac79-f9378e91a1ad"
 
+#define NTP_1 "ntp.nict.jp"
+#define NTP_2 "ntp1.noc.titech.ac.jp"
+#define NTP_3 "ntp.jst.mfeed.ad.jp"
+
 #define HUB_ADDR 0x70
 //#define SSID "KOKI08-DYNABOOK 1420"
 //#define WIFI_PASS "653R0o0<"
@@ -29,6 +34,9 @@ String SSID;
 String WIFI_PASS;
 String SECRET;
 String USER_ID;
+int POST_HOUR;
+int POST_MIN; 
+
 
 BLEServer *pServer = nullptr;
 BLECharacteristic *pCharacteristic = nullptr;
@@ -80,13 +88,17 @@ class MyReceiveCallbacks : public BLECharacteristicCallbacks {
       else {
         SSID = recv["ssid"].as<String>();
         WIFI_PASS = recv["password"].as<String>();
+        USER_ID = recv["userId"].as<String>();
+        SECRET = recv["secret"].as<String>();
+        POST_HOUR = recv["post_hour"].as<int>();
+        POST_MIN = recv["post_min"].as<int>();
       }
 
       //Saving JSON Data
       EEPROM.writeString(0x00, value.c_str());
       EEPROM.commit();
 
-      //WiFi Reconnection
+      /* BEGIN WIFI-RECONNECTION */
       bool WIFI_flag = 0;
       Serial.println("Starting Wi-Fi Reconnection...");
       WiFi.begin(SSID, WIFI_PASS);
@@ -104,11 +116,14 @@ class MyReceiveCallbacks : public BLECharacteristicCallbacks {
       if (WIFI_flag) {
         Serial.print("Wi-Fi Connected. Local IP is: ");
         Serial.println(WiFi.localIP());
+        configTime(60 * 60 * 9, 0, NTP_1, NTP_2, NTP_3);
       }
       else {
         Serial.println("Wifi Connection failed.");
       }
     }
+    /* END WIFI-RECONNECTION */
+
     // if BLE Signal is 1 then;
     else {
 
@@ -135,13 +150,13 @@ void setup() {
     canvas.setTextWrap(false);
     canvas.setTextSize(1.5);
     canvas.createSprite(display.width(), display.height());
-    EEPROM.begin(300);
 
+    EEPROM.begin(400);
     std::string JsonData = EEPROM.readString(0x00).c_str();
     JsonDocument data;
     DeserializationError err = deserializeJson(data, JsonData);
 
-    if (err) {
+    if(err) {
       Serial.print(F("JSON parsing failed: "));
       Serial.println(err.f_str());
     }
@@ -150,6 +165,8 @@ void setup() {
       WIFI_PASS = data["password"].as<String>();
       USER_ID = data["userId"].as<String>();
       SECRET = data["secret"].as<String>();
+      POST_HOUR = data["post_hour"].as<int>();
+      POST_MIN = data["post_min"].as<int>();
     }
 
     // use Channel 2 and 3 in Pa.HUB2
@@ -163,7 +180,7 @@ void setup() {
     Serial.println("All MiniScales are successfully initialized");
     
     
-    //Wifi Connection
+    /* BEGIN WIFI-CONNECTION */
     bool WIFI_flag = 0;
     Serial.println("Starting Wi-Fi Connection...");
     WiFi.begin(SSID, WIFI_PASS);
@@ -178,14 +195,17 @@ void setup() {
       };
     }
     if(WiFi.isConnected()) WIFI_flag = 1;
-    if (WIFI_flag) {
+    if(WIFI_flag) {
       Serial.print("Wi-Fi Connected. Local IP is: ");
       Serial.println(WiFi.localIP());
+      configTime(60 * 60 * 9, 0, NTP_1, NTP_2, NTP_3);
     }
     else {
       Serial.println("Wifi Connection failed.");
     }
+    /* END WIFI-CONNECTION */
 
+    /* BEGIN BLE-INITIALIZATION */
     BLEDevice::init(BT_SV_NAME);
 
     pServer = BLEDevice::createServer();
@@ -214,6 +234,8 @@ void setup() {
 
     BLEDevice::startAdvertising();
     Serial.println("Bluetooth Slave Started");
+    /* END BLE-INITIALIZATION */
+
 }
 
 
@@ -227,6 +249,8 @@ void loop() {
   static unsigned long previousTime = 0;
   static unsigned long previousTime2 = 0;
   static unsigned long previousTime3 = 0;
+
+  static bool isSent = 0;
 
   int32_t weight1 = 0;
   int32_t weight2 = 0;
@@ -262,25 +286,27 @@ void loop() {
     canvas.printf("Cup2: %dg\n", weight2);
   }
 
-  if(currentTime - previousTime >= 500000) {
+  if(currentTime - previousTime >= 1000) {
     previousTime = currentTime;
 
-    Serial.print("gram1 : ");
-    Serial.println(weight1);
-    Serial.print("gram2 : ");
-    Serial.println(weight2);
+    struct tm timenow;
+    getLocalTime(&timenow);
 
-    post(SECRET, USER_ID, weight1, weight2);
-  }
+    if(timenow.tm_min == POST_MIN && timenow.tm_hour == POST_HOUR && !isSent) {
+      Serial.print("gram1 : ");
+      Serial.println(weight1);
+      Serial.print("gram2 : ");
+      Serial.println(weight2);
 
-  /*
-  if (Connected) {
-    if(currentTime3 - previousTime3 >= 1000){
-      previousTime3 = currentTime3;
-      pCharacteristic->setValue("Hello World!");
-      pCharacteristic->notify();
+      currentTime3 = previousTime3;
+      isSent = 1;
+      post(SECRET, USER_ID, weight1, weight2);
     }
-
   }
-  */
+
+  if(currentTime3 - previousTime3 >= 300000) {
+    currentTime3 = previousTime3;
+    isSent = 0;
+  }
+
 }
