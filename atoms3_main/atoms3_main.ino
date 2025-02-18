@@ -1,3 +1,4 @@
+#pragma once
 #include <M5AtomS3.h>
 #include <string.h>
 
@@ -36,6 +37,7 @@ String SECRET;
 String USER_ID;
 int POST_HOUR;
 int POST_MIN; 
+int POST_GRAM;
 
 
 BLEServer *pServer = nullptr;
@@ -92,6 +94,7 @@ class MyReceiveCallbacks : public BLECharacteristicCallbacks {
         SECRET = recv["secret"].as<String>();
         POST_HOUR = recv["post_hour"].as<int>();
         POST_MIN = recv["post_min"].as<int>();
+        POST_GRAM = recv["notificationThresholdGrams"].as<int>();
       }
 
       //Saving JSON Data
@@ -167,6 +170,7 @@ void setup() {
       SECRET = data["secret"].as<String>();
       POST_HOUR = data["post_hour"].as<int>();
       POST_MIN = data["post_min"].as<int>();
+      POST_GRAM = data["notificationThresholdGrams"].as<int>();
     }
 
     // use Channel 2 and 3 in Pa.HUB2
@@ -292,7 +296,8 @@ void loop() {
     struct tm timenow;
     getLocalTime(&timenow);
 
-    if(timenow.tm_min == POST_MIN && timenow.tm_hour == POST_HOUR && !isSent) {
+    bool isGramLow = (weight1 <= POST_GRAM || weight2 <= POST_GRAM);
+    if(timenow.tm_min == POST_MIN && timenow.tm_hour == POST_HOUR && !isSent && isGramLow) {
       Serial.print("gram1 : ");
       Serial.println(weight1);
       Serial.print("gram2 : ");
