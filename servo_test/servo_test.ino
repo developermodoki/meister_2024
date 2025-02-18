@@ -1,3 +1,4 @@
+#pragma once
 #include <M5AtomS3.h>
 #include <ESP32Servo.h>
 
@@ -22,6 +23,6 @@ void loop() {
 
   servo1.write(90);
   delay(1000);
-  servo1.write(45);
+  servo1.write(180);
   delay(1000);
 }

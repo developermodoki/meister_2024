@@ -5,6 +5,7 @@
 #include <Wire.h>
 #include "ClosedCube_TCA9548A.h"
 #include "UNIT_SCALES.h"
+#include <ESP32Servo.h>
 
 #include <WiFi.h>
 #include <time.h>
@@ -28,6 +29,7 @@
 #define NTP_3 "ntp.jst.mfeed.ad.jp"
 
 #define HUB_ADDR 0x70
+#define SERVO_PIN G39
 //#define SSID "KOKI08-DYNABOOK 1420"
 //#define WIFI_PASS "653R0o0<"
 //↑ dummy ssid&pass
@@ -39,6 +41,8 @@ int POST_HOUR;
 int POST_MIN; 
 int POST_GRAM;
 
+int GRAM_UNTIL = 60000;
+Servo servo1;
 
 BLEServer *pServer = nullptr;
 BLECharacteristic *pCharacteristic = nullptr;
@@ -70,9 +74,8 @@ class MyReceiveCallbacks : public BLECharacteristicCallbacks {
 
     if (value.length() > 0) {
       Serial.println("*********");
-      Serial.print("BLE Write Received: ");
+      Serial.print("BLE Write Recieved: ");
       Serial.println(value.c_str());
-      Serial.println();
       Serial.println("*********");
     }
 
@@ -129,7 +132,17 @@ class MyReceiveCallbacks : public BLECharacteristicCallbacks {
 
     // if BLE Signal is 1 then;
     else {
+      value.erase(0,1);
+      JsonDocument recv;
+      DeserializationError err = deserializeJson(recv, value.c_str());
 
+      if (err) {
+        Serial.print(F("JSON parsing failed: "));
+        Serial.println(err.f_str());
+      }
+      else {
+        GRAM_UNTIL = recv["grams"].as<int>(); 
+      }
     }
   }
 };
@@ -145,6 +158,10 @@ void setup() {
     Serial.begin(9600);
     Wire.begin(2, 1); // Use Port Custom of M5AtomS3, so SDA is 2, SCL is 1.
     tca9548a.address(HUB_ADDR);
+
+    servo1.setPeriodHertz(50);
+    servo1.attach(SERVO_PIN, 500, 2400);
+    Serial.println("Servo initalized");
 
     tca9548a.selectChannel(3);
     display.init();
@@ -280,6 +297,15 @@ void loop() {
   canvas.pushSprite(0, 0);
   canvas.setCursor(0, 0);
 
+  if(GRAM_UNTIL != 60000) {
+    if(weight1 > GRAM_UNTIL) {
+      servo1.write(90);
+    }
+    else {
+      servo1.write(180);
+      GRAM_UNTIL = 60000;
+    }
+  }
 
   if(currentTime2 - previousTime2 >= 100) {
     previousTime2 = currentTime2;
