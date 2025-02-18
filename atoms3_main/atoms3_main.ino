@@ -161,6 +161,7 @@ void setup() {
 
     servo1.setPeriodHertz(50);
     servo1.attach(SERVO_PIN, 500, 2400);
+    servo1.write(180);
     Serial.println("Servo initalized");
 
     tca9548a.selectChannel(3);
